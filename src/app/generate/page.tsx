@@ -8,14 +8,15 @@ import { useDropzone } from 'react-dropzone'
 import { Upload, FileText, Settings, Loader2 } from 'lucide-react'
 import { quizService } from '@/services/quizService'
 import ClientOnly from '@/components/ClientOnly'
+import QuizDisplay from '@/components/QuizDisplay'
 
 const quizGenerationSchema = z.object({
   text: z.string().optional(),
   file: z.any().optional(),
   question_types: z.array(z.string()).min(1, 'Select at least one question type'),
   num_questions: z.number().min(1, 'Minimum 1 question').max(40, 'Maximum 40 questions'),
-  difficulty: z.string().min(1, 'Select difficulty level'),
-  topic: z.string().optional(),
+  difficulty: z.array(z.string()).min(1, 'Select at least one difficulty level'),
+  topic: z.string().min(1, 'Topic is required'),
 }).refine(data => data.text || data.file, {
   message: 'Either provide text or upload a file',
   path: ['text']
@@ -29,6 +30,7 @@ function GeneratePageContent() {
   const [availableQuestionTypes, setAvailableQuestionTypes] = useState<string[]>([])
   const [availableDifficulties, setAvailableDifficulties] = useState<string[]>([])
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
+  const [quizResponse, setQuizResponse] = useState<any | null>(null)
 
   const {
     register,
@@ -41,7 +43,7 @@ function GeneratePageContent() {
     defaultValues: {
       question_types: [],
       num_questions: 5,
-      difficulty: '',
+      difficulty: [],
       topic: ''
     }
   })
@@ -50,51 +52,48 @@ function GeneratePageContent() {
   useEffect(() => {
     const fetchOptions = async () => {
       try {
-        console.log('Fetching question types and difficulty levels...')
+        console.log('Fetching question types and difficulty levels...');
         
         const [questionTypesRes, difficultiesRes] = await Promise.all([
           quizService.getQuestionTypes(),
           quizService.getDifficultyLevels()
-        ])
+        ]);
         
-        console.log('Question Types Response:', questionTypesRes)
-        console.log('Difficulties Response:', difficultiesRes)
+        console.log('Question Types Response:', questionTypesRes);
+        console.log('Difficulties Response:', difficultiesRes);
         
-        if (!questionTypesRes.error) {
-          console.log('Setting question types:', questionTypesRes.data)
-          // Extract values from the question_types array
-          if (questionTypesRes.data?.question_types && Array.isArray(questionTypesRes.data.question_types)) {
-            const questionTypeValues = questionTypesRes.data.question_types.map((type: any) => type.value)
-            setAvailableQuestionTypes(questionTypeValues)
+        if (questionTypesRes && !questionTypesRes.error && questionTypesRes.data) {
+          if (Array.isArray(questionTypesRes.data)) {
+            setAvailableQuestionTypes(questionTypesRes.data);
+          } else if (Array.isArray(questionTypesRes.data.question_types)) {
+            setAvailableQuestionTypes(questionTypesRes.data.question_types);
+          } else {
+            console.error('Unexpected format for question types:', questionTypesRes.data);
           }
         } else {
-          console.error('Question types error:', questionTypesRes.message)
+          console.error('Failed to fetch question types:', questionTypesRes?.message);
         }
         
-        if (!difficultiesRes.error) {
-          console.log('Setting difficulties:', difficultiesRes.data)
-          // Check if data has difficulty_levels array or is a direct array
-          if (difficultiesRes.data?.difficulty_levels && Array.isArray(difficultiesRes.data.difficulty_levels)) {
-            const difficultyValues = difficultiesRes.data.difficulty_levels.map((diff: any) => 
-              typeof diff === 'object' ? diff.value : diff
-            )
-            setAvailableDifficulties(difficultyValues)
-          } else if (Array.isArray(difficultiesRes.data)) {
-            setAvailableDifficulties(difficultiesRes.data)
+        if (difficultiesRes && !difficultiesRes.error && difficultiesRes.data) {
+          if (Array.isArray(difficultiesRes.data)) {
+            setAvailableDifficulties(difficultiesRes.data);
+          } else if (Array.isArray(difficultiesRes.data.difficulty_levels)) {
+            setAvailableDifficulties(difficultiesRes.data.difficulty_levels);
+          } else {
+            console.error('Unexpected format for difficulty levels:', difficultiesRes.data);
           }
         } else {
-          console.error('Difficulties error:', difficultiesRes.message)
+          console.error('Failed to fetch difficulty levels:', difficultiesRes?.message);
         }
       } catch (error) {
-        console.error('Failed to fetch options:', error)
-        // Only use empty arrays if there's an error, don't set fallbacks
-        setAvailableQuestionTypes([])
-        setAvailableDifficulties([])
+        console.error('Failed to fetch options:', error);
+        setAvailableQuestionTypes([]);
+        setAvailableDifficulties([]);
       }
-    }
+    };
 
-    fetchOptions()
-  }, [])
+    fetchOptions();
+  }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: {
@@ -114,6 +113,16 @@ function GeneratePageContent() {
   })
 
   const selectedQuestionTypes = watch('question_types')
+  const selectedDifficulties = watch('difficulty')
+
+  const handleDifficultyChange = (difficulty: string, checked: boolean) => {
+    const current = selectedDifficulties || []
+    if (checked) {
+      setValue('difficulty', [...current, difficulty])
+    } else {
+      setValue('difficulty', current.filter(d => d !== difficulty))
+    }
+  }
 
   const handleQuestionTypeChange = (type: string, checked: boolean) => {
     const current = selectedQuestionTypes || []
@@ -134,7 +143,7 @@ function GeneratePageContent() {
         formData.append('file', uploadedFile)
         formData.append('question_types', JSON.stringify(data.question_types))
         formData.append('num_questions', data.num_questions.toString())
-        formData.append('difficulty', data.difficulty)
+        formData.append('difficulty', JSON.stringify(data.difficulty))
         if (data.topic) {
           formData.append('topic', data.topic)
         }
@@ -153,9 +162,11 @@ function GeneratePageContent() {
       if (!response.error) {
         // Handle successful quiz generation
         console.log('Quiz generated successfully:', response.data)
+        setQuizResponse(response.data)
         // TODO: Navigate to results page or display results
       } else {
         console.error('Quiz generation failed:', response.message)
+        setQuizResponse(null)
       }
     } catch (error) {
       console.error('Quiz generation error:', error)
@@ -288,7 +299,7 @@ function GeneratePageContent() {
               {/* Topic */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Topic (Optional)
+                  Topic
                 </label>
                 <input
                   type="text"
@@ -303,17 +314,25 @@ function GeneratePageContent() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Difficulty Level
                 </label>
-                <select
-                  {...register('difficulty')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">Select difficulty</option>
-                  {Array.isArray(availableDifficulties) && availableDifficulties.map((difficulty) => (
-                    <option key={difficulty} value={difficulty}>
-                      {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}
-                    </option>
-                  ))}
-                </select>
+                <div className="space-y-2">
+                  {Array.isArray(availableDifficulties) && availableDifficulties.map((difficulty) => {
+                    const value = typeof difficulty === 'object' && difficulty !== null ? (difficulty as any).value : difficulty;
+                    const label = typeof difficulty === 'object' && difficulty !== null ? ((difficulty as any).label || value) : difficulty;
+                    return (
+                      <label key={value} className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedDifficulties?.includes(value) || false}
+                          onChange={(e) => handleDifficultyChange(value, e.target.checked)}
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">
+                          {typeof label === 'string' && label.charAt(0).toUpperCase() + label.slice(1)}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
                 {errors.difficulty && (
                   <p className="mt-1 text-sm text-red-600">{errors.difficulty.message}</p>
                 )}
@@ -325,19 +344,23 @@ function GeneratePageContent() {
                   Question Types
                 </label>
                 <div className="space-y-2">
-                  {Array.isArray(availableQuestionTypes) && availableQuestionTypes.map((type) => (
-                    <label key={type} className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={selectedQuestionTypes?.includes(type) || false}
-                        onChange={(e) => handleQuestionTypeChange(type, e.target.checked)}
-                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      />
-                      <span className="ml-2 text-sm text-gray-700">
-                        {type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                      </span>
-                    </label>
-                  ))}
+                  {Array.isArray(availableQuestionTypes) && availableQuestionTypes.map((type) => {
+                    const value = typeof type === 'object' && type !== null ? (type as any).value : type;
+                    const label = typeof type === 'object' && type !== null ? ((type as any).label || value) : type;
+                    return (
+                      <label key={value} className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedQuestionTypes?.includes(value) || false}
+                          onChange={(e) => handleQuestionTypeChange(value, e.target.checked)}
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">
+                          {typeof label === 'string' && label.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                        </span>
+                      </label>
+                    );
+                  })}
                 </div>
                 {errors.question_types && (
                   <p className="mt-1 text-sm text-red-600">{errors.question_types.message}</p>
@@ -364,6 +387,8 @@ function GeneratePageContent() {
             </button>
           </div>
         </form>
+
+        {quizResponse && <QuizDisplay quizData={quizResponse} />}
       </div>
     </div>
   )
@@ -383,3 +408,4 @@ export default function GeneratePage() {
     </ClientOnly>
   )
 }
+
