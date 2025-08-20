@@ -1,0 +1,1841 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "AI Quiz Generator API",
+        "description": "Backend for AI-powered quiz generation with Google Forms integration",
+        "version": "1.0.0"
+    },
+    "paths": {
+        "/auth/google/authorize": {
+            "get": {
+                "tags": [
+                    "authentication"
+                ],
+                "summary": "Get Google Auth Url",
+                "description": "Get Google OAuth authorization URL",
+                "operationId": "get_google_auth_url_auth_google_authorize_get",
+                "parameters": [
+                    {
+                        "name": "state",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "State"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Google OAuth authorization URL generated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "examples": {
+                                    "auth_url_success": {
+                                        "summary": "Successful Authorization URL Generation",
+                                        "description": "Example response when generating Google OAuth URL",
+                                        "value": {
+                                            "error": false,
+                                            "data": {
+                                                "auth_url": "https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=your-client-id&redirect_uri=http%3A%2F%2Flocalhost%3A8000%2Fauth%2Fcallback&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fforms+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive&access_type=offline&state=optional-state-parameter"
+                                            },
+                                            "message": "Authorization URL generated successfully"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/callback": {
+            "get": {
+                "tags": [
+                    "authentication"
+                ],
+                "summary": "Google Auth Callback",
+                "description": "Handle Google OAuth callback",
+                "operationId": "google_auth_callback_auth_callback_get",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Code"
+                        }
+                    },
+                    {
+                        "name": "state",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "State"
+                        }
+                    },
+                    {
+                        "name": "error",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Error"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Google OAuth callback handled successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "examples": {
+                                    "callback_success": {
+                                        "summary": "Successful OAuth Callback",
+                                        "description": "Example response when OAuth callback is processed successfully",
+                                        "value": {
+                                            "error": false,
+                                            "data": {
+                                                "access_token": "ya29.a0AfH6SMC...",
+                                                "refresh_token": "1//04vOK...",
+                                                "expires_in": 3599,
+                                                "user_info": {
+                                                    "id": "123456789",
+                                                    "email": "user@example.com",
+                                                    "name": "John Doe",
+                                                    "given_name": "John",
+                                                    "family_name": "Doe",
+                                                    "picture": "https://lh3.googleusercontent.com/a/...",
+                                                    "locale": "en"
+                                                },
+                                                "credentials_json": "{\"token\": \"ya29.a0AfH6SMC...\", \"refresh_token\": \"1//04vOK...\", \"token_uri\": \"https://oauth2.googleapis.com/token\", \"client_id\": \"your-client-id\", \"client_secret\": \"your-client-secret\", \"scopes\": [\"https://www.googleapis.com/auth/forms\", \"https://www.googleapis.com/auth/drive\"]}"
+                                            },
+                                            "message": "Authentication completed successfully"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/refresh": {
+            "post": {
+                "tags": [
+                    "authentication"
+                ],
+                "summary": "Refresh Token",
+                "description": "Refresh access token",
+                "operationId": "refresh_token_auth_refresh_post",
+                "parameters": [
+                    {
+                        "name": "refresh_token",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Refresh Token"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Access token refreshed successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "examples": {
+                                    "refresh_success": {
+                                        "summary": "Successful Token Refresh",
+                                        "description": "Example response when access token is refreshed",
+                                        "value": {
+                                            "error": false,
+                                            "data": {
+                                                "access_token": "ya29.a0AfH6SMC_new_token...",
+                                                "expires_in": 3599
+                                            },
+                                            "message": "Token refreshed successfully"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/validate": {
+            "post": {
+                "tags": [
+                    "authentication"
+                ],
+                "summary": "Validate Credentials",
+                "description": "Validate Google credentials",
+                "operationId": "validate_credentials_auth_validate_post",
+                "parameters": [
+                    {
+                        "name": "credentials_json",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Credentials Json"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Credentials validation completed",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "examples": {
+                                    "validation_success": {
+                                        "summary": "Valid Credentials",
+                                        "description": "Example response when credentials are valid",
+                                        "value": {
+                                            "error": false,
+                                            "data": {
+                                                "valid": true,
+                                                "status": "valid"
+                                            },
+                                            "message": "Credentials validated successfully"
+                                        }
+                                    },
+                                    "validation_failure": {
+                                        "summary": "Invalid Credentials",
+                                        "description": "Example response when credentials are invalid",
+                                        "value": {
+                                            "error": false,
+                                            "data": {
+                                                "valid": false,
+                                                "status": "invalid"
+                                            },
+                                            "message": "Credentials validated successfully"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/quiz/generate": {
+            "post": {
+                "tags": [
+                    "quiz"
+                ],
+                "summary": "Generate Quiz From Text",
+                "description": "Generate quiz questions from text input using Google Gemini",
+                "operationId": "generate_quiz_from_text_quiz_generate_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/QuizGenerationRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Quiz generated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "examples": {
+                                    "multiple_choice_example": {
+                                        "summary": "Multiple Choice Questions",
+                                        "description": "Example response when generating multiple choice questions",
+                                        "value": {
+                                            "error": false,
+                                            "data": {
+                                                "questions": [
+                                                    {
+                                                        "id": "ad85f296-610f-4d3e-9ed1-1f6fcbc5506a",
+                                                        "question_text": "In what year did Kane Williamson make his first-class debut?",
+                                                        "question_type": "multiple_choice",
+                                                        "options": [
+                                                            {
+                                                                "text": "2008",
+                                                                "is_correct": false
+                                                            },
+                                                            {
+                                                                "text": "2010",
+                                                                "is_correct": false
+                                                            },
+                                                            {
+                                                                "text": "2007",
+                                                                "is_correct": true
+                                                            },
+                                                            {
+                                                                "text": "2009",
+                                                                "is_correct": false
+                                                            }
+                                                        ],
+                                                        "explanation": "Williamson's first-class debut occurred in 2007 for Tauranga Boys' College."
+                                                    }
+                                                ],
+                                                "total_questions": 1,
+                                                "difficulty_levels": [
+                                                    "basic"
+                                                ],
+                                                "topic": "Kane Williamson",
+                                                "generated_at": "2025-08-20T15:02:54.610211",
+                                                "quiz_settings": {
+                                                    "requested_questions": 1,
+                                                    "requested_question_types": [
+                                                        "multiple_choice"
+                                                    ],
+                                                    "difficulty_levels": [
+                                                        "basic"
+                                                    ],
+                                                    "topic_focus": "Kane Williamson"
+                                                },
+                                                "text_processing": {
+                                                    "input_length": 1718,
+                                                    "chunking_used": false,
+                                                    "max_chunk_size": 4000
+                                                }
+                                            },
+                                            "message": "Quiz generated successfully"
+                                        }
+                                    },
+                                    "true_false_example": {
+                                        "summary": "True/False Questions",
+                                        "description": "Example response when generating true/false questions with options array",
+                                        "value": {
+                                            "error": false,
+                                            "data": {
+                                                "questions": [
+                                                    {
+                                                        "id": "4db67fe7-1f17-44ef-ad21-beed72e04693",
+                                                        "question_text": "Kane Williamson's international cricket debut was in 2007.",
+                                                        "question_type": "true_false",
+                                                        "options": [
+                                                            {
+                                                                "text": "True",
+                                                                "is_correct": false
+                                                            },
+                                                            {
+                                                                "text": "False",
+                                                                "is_correct": true
+                                                            }
+                                                        ],
+                                                        "explanation": "His international debut was in 2010, not 2007."
+                                                    }
+                                                ],
+                                                "total_questions": 1,
+                                                "difficulty_levels": [
+                                                    "basic"
+                                                ],
+                                                "topic": "Kane Williamson",
+                                                "generated_at": "2025-08-20T15:00:07.695216",
+                                                "quiz_settings": {
+                                                    "requested_questions": 1,
+                                                    "requested_question_types": [
+                                                        "true_false"
+                                                    ],
+                                                    "difficulty_levels": [
+                                                        "basic"
+                                                    ],
+                                                    "topic_focus": "Kane Williamson"
+                                                },
+                                                "text_processing": {
+                                                    "input_length": 1718,
+                                                    "chunking_used": false,
+                                                    "max_chunk_size": 4000
+                                                }
+                                            },
+                                            "message": "Quiz generated successfully"
+                                        }
+                                    },
+                                    "mixed_questions_example": {
+                                        "summary": "Mixed Question Types",
+                                        "description": "Example response when generating mixed question types",
+                                        "value": {
+                                            "error": false,
+                                            "data": {
+                                                "questions": [
+                                                    {
+                                                        "id": "ad85f296-610f-4d3e-9ed1-1f6fcbc5506a",
+                                                        "question_text": "Which ICC tournament final did Kane Williamson's team reach in 2019?",
+                                                        "question_type": "multiple_choice",
+                                                        "options": [
+                                                            {
+                                                                "text": "ICC World Test Championship",
+                                                                "is_correct": false
+                                                            },
+                                                            {
+                                                                "text": "T20 World Cup",
+                                                                "is_correct": false
+                                                            },
+                                                            {
+                                                                "text": "ICC Champions Trophy",
+                                                                "is_correct": false
+                                                            },
+                                                            {
+                                                                "text": "Cricket World Cup",
+                                                                "is_correct": true
+                                                            }
+                                                        ],
+                                                        "explanation": "New Zealand reached the final of the 2019 Cricket World Cup under Williamson's captaincy."
+                                                    },
+                                                    {
+                                                        "id": "4db67fe7-1f17-44ef-ad21-beed72e04693",
+                                                        "question_text": "Williamson's father, Brett, was also a cricketer.",
+                                                        "question_type": "true_false",
+                                                        "options": [
+                                                            {
+                                                                "text": "True",
+                                                                "is_correct": true
+                                                            },
+                                                            {
+                                                                "text": "False",
+                                                                "is_correct": false
+                                                            }
+                                                        ],
+                                                        "explanation": "His father was indeed a former cricketer."
+                                                    }
+                                                ],
+                                                "total_questions": 2,
+                                                "difficulty_levels": [
+                                                    "basic"
+                                                ],
+                                                "topic": "Kane Williamson",
+                                                "generated_at": "2025-08-20T15:00:07.695216",
+                                                "quiz_settings": {
+                                                    "requested_questions": 2,
+                                                    "requested_question_types": [
+                                                        "multiple_choice",
+                                                        "true_false"
+                                                    ],
+                                                    "difficulty_levels": [
+                                                        "basic"
+                                                    ],
+                                                    "topic_focus": "Kane Williamson"
+                                                },
+                                                "text_processing": {
+                                                    "input_length": 1718,
+                                                    "chunking_used": false,
+                                                    "max_chunk_size": 4000
+                                                }
+                                            },
+                                            "message": "Quiz generated successfully"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/quiz/generate-from-file": {
+            "post": {
+                "tags": [
+                    "quiz"
+                ],
+                "summary": "Generate Quiz From File",
+                "description": "Generate quiz questions from uploaded file using Google Gemini",
+                "operationId": "generate_quiz_from_file_quiz_generate_from_file_post",
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Body_generate_quiz_from_file_quiz_generate_from_file_post"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Quiz generated successfully from uploaded file",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "examples": {
+                                    "file_upload_success": {
+                                        "summary": "Successful File Upload Quiz Generation",
+                                        "description": "Example response when successfully generating quiz from uploaded file",
+                                        "value": {
+                                            "error": false,
+                                            "data": {
+                                                "questions": [
+                                                    {
+                                                        "id": "8ecc32d3-03c6-4707-9630-d986afc7a774",
+                                                        "question_text": "In what year did Kane Williamson make his first-class debut?",
+                                                        "question_type": "multiple_choice",
+                                                        "options": [
+                                                            {
+                                                                "text": "2006",
+                                                                "is_correct": false
+                                                            },
+                                                            {
+                                                                "text": "2007",
+                                                                "is_correct": true
+                                                            },
+                                                            {
+                                                                "text": "2008",
+                                                                "is_correct": false
+                                                            },
+                                                            {
+                                                                "text": "2010",
+                                                                "is_correct": false
+                                                            }
+                                                        ],
+                                                        "explanation": "Williamson made his first-class debut in 2007 for Tauranga Boys' College."
+                                                    }
+                                                ],
+                                                "total_questions": 1,
+                                                "difficulty_levels": [
+                                                    "intermediate"
+                                                ],
+                                                "topic": "Kane Williamson Cricket Career",
+                                                "generated_at": "2025-08-20T15:00:07.695216",
+                                                "source_file": "kane_williamson_biography.pdf",
+                                                "quiz_settings": {
+                                                    "requested_questions": 1,
+                                                    "requested_question_types": [
+                                                        "multiple_choice"
+                                                    ],
+                                                    "difficulty_levels": [
+                                                        "intermediate"
+                                                    ],
+                                                    "topic_focus": "Kane Williamson Cricket Career"
+                                                },
+                                                "text_processing": {
+                                                    "extracted_text_length": 2450,
+                                                    "chunking_used": false,
+                                                    "max_chunk_size": 4000
+                                                }
+                                            },
+                                            "message": "Quiz generated successfully from file"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/quiz/test-gemini": {
+            "get": {
+                "tags": [
+                    "quiz"
+                ],
+                "summary": "Test Gemini Connection",
+                "description": "Test Google Gemini API connection",
+                "operationId": "test_gemini_connection_quiz_test_gemini_get",
+                "responses": {
+                    "200": {
+                        "description": "Gemini connection test completed",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "examples": {
+                                    "connection_success": {
+                                        "summary": "Gemini Connected",
+                                        "description": "Example response when Gemini API is accessible",
+                                        "value": {
+                                            "error": false,
+                                            "data": {
+                                                "gemini_connected": true,
+                                                "model": "gemini-pro",
+                                                "status": "connected"
+                                            },
+                                            "message": "Gemini connection test completed"
+                                        }
+                                    },
+                                    "connection_failure": {
+                                        "summary": "Gemini Connection Failed",
+                                        "description": "Example response when Gemini API is not accessible",
+                                        "value": {
+                                            "error": true,
+                                            "data": {
+                                                "gemini_connected": false,
+                                                "model": "gemini-pro",
+                                                "status": "connection_failed",
+                                                "error": "API key not configured or invalid"
+                                            },
+                                            "message": "Failed to test Gemini connection"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/quiz/question-types": {
+            "get": {
+                "tags": [
+                    "quiz"
+                ],
+                "summary": "Get Question Types",
+                "description": "Get available question types",
+                "operationId": "get_question_types_quiz_question_types_get",
+                "responses": {
+                    "200": {
+                        "description": "Available question types retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "examples": {
+                                    "question_types": {
+                                        "summary": "Available Question Types",
+                                        "description": "List of supported question types",
+                                        "value": {
+                                            "error": false,
+                                            "data": {
+                                                "question_types": [
+                                                    {
+                                                        "value": "multiple_choice",
+                                                        "label": "Multiple Choice"
+                                                    },
+                                                    {
+                                                        "value": "true_false",
+                                                        "label": "True False"
+                                                    },
+                                                    {
+                                                        "value": "open_ended",
+                                                        "label": "Open Ended"
+                                                    }
+                                                ]
+                                            },
+                                            "message": "Question types retrieved successfully"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/quiz/difficulty-levels": {
+            "get": {
+                "tags": [
+                    "quiz"
+                ],
+                "summary": "Get Difficulty Levels",
+                "description": "Get available difficulty levels",
+                "operationId": "get_difficulty_levels_quiz_difficulty_levels_get",
+                "responses": {
+                    "200": {
+                        "description": "Available difficulty levels retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "examples": {
+                                    "difficulty_levels": {
+                                        "summary": "Available Difficulty Levels",
+                                        "description": "List of supported difficulty levels",
+                                        "value": {
+                                            "error": false,
+                                            "data": {
+                                                "difficulty_levels": [
+                                                    {
+                                                        "value": "basic",
+                                                        "label": "Basic"
+                                                    },
+                                                    {
+                                                        "value": "intermediate",
+                                                        "label": "Intermediate"
+                                                    },
+                                                    {
+                                                        "value": "advanced",
+                                                        "label": "Advanced"
+                                                    }
+                                                ]
+                                            },
+                                            "message": "Difficulty levels retrieved successfully"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/quiz/limits": {
+            "get": {
+                "tags": [
+                    "quiz"
+                ],
+                "summary": "Get Limits",
+                "description": "Get system limits and constraints",
+                "operationId": "get_limits_quiz_limits_get",
+                "responses": {
+                    "200": {
+                        "description": "System limits and constraints retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "examples": {
+                                    "system_limits": {
+                                        "summary": "System Limits and Constraints",
+                                        "description": "Current system configuration and limits",
+                                        "value": {
+                                            "error": false,
+                                            "data": {
+                                                "max_questions": 40,
+                                                "min_questions": 1,
+                                                "max_file_size": 10485760,
+                                                "max_file_size_mb": 10.0,
+                                                "allowed_file_types": [
+                                                    "pdf",
+                                                    "docx",
+                                                    "txt"
+                                                ],
+                                                "min_text_length": 50,
+                                                "ai_model": "gemini-pro",
+                                                "max_input_chars": 4000,
+                                                "chunking_enabled": true
+                                            },
+                                            "message": "System limits retrieved successfully"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/quiz/usage-examples": {
+            "get": {
+                "tags": [
+                    "quiz"
+                ],
+                "summary": "Get Usage Examples",
+                "description": "Get usage examples for API parameters",
+                "operationId": "get_usage_examples_quiz_usage_examples_get",
+                "responses": {
+                    "200": {
+                        "description": "API usage examples retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "examples": {
+                                    "usage_examples": {
+                                        "summary": "API Usage Examples and Documentation",
+                                        "description": "Comprehensive examples for using the API",
+                                        "value": {
+                                            "error": false,
+                                            "data": {
+                                                "question_types": {
+                                                    "description": "Specify one or more question types",
+                                                    "accepted_formats": [
+                                                        "multiple_choice",
+                                                        "multiple-choice",
+                                                        "mcq",
+                                                        "mc",
+                                                        "true_false",
+                                                        "true-false",
+                                                        "tf",
+                                                        "bool",
+                                                        "boolean",
+                                                        "open_ended",
+                                                        "open-ended",
+                                                        "essay",
+                                                        "text",
+                                                        "open"
+                                                    ],
+                                                    "examples": {
+                                                        "single_type": "multiple_choice",
+                                                        "multiple_types": "multiple_choice,true_false,open_ended",
+                                                        "mixed_format": "mcq,tf,essay"
+                                                    }
+                                                },
+                                                "difficulty_levels": {
+                                                    "description": "Choose one or more difficulty levels for questions",
+                                                    "accepted_formats": [
+                                                        "basic",
+                                                        "easy",
+                                                        "simple",
+                                                        "beginner",
+                                                        "intermediate",
+                                                        "medium",
+                                                        "moderate",
+                                                        "normal",
+                                                        "advanced",
+                                                        "hard",
+                                                        "difficult",
+                                                        "expert",
+                                                        "complex"
+                                                    ],
+                                                    "examples": {
+                                                        "single_level": "intermediate",
+                                                        "multiple_levels": "basic,intermediate,advanced",
+                                                        "mixed_format": "easy,medium,hard"
+                                                    }
+                                                },
+                                                "api_examples": {
+                                                    "text_generation": {
+                                                        "method": "POST",
+                                                        "endpoint": "/quiz/generate",
+                                                        "sample_request": {
+                                                            "text": "Your content here...",
+                                                            "num_questions": 10,
+                                                            "question_types": [
+                                                                "multiple_choice",
+                                                                "true_false"
+                                                            ],
+                                                            "difficulty_levels": [
+                                                                "basic",
+                                                                "intermediate"
+                                                            ],
+                                                            "topic": "Optional specific topic"
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "message": "Usage examples retrieved successfully"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/quiz/download/txt": {
+            "post": {
+                "tags": [
+                    "quiz"
+                ],
+                "summary": "Download Quiz Txt",
+                "description": "Download quiz questions as TXT file",
+                "operationId": "download_quiz_txt_quiz_download_txt_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/DownloadRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "TXT file generated and downloaded successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            },
+                            "text/plain": {
+                                "examples": {
+                                    "txt_download": {
+                                        "summary": "TXT File Download",
+                                        "description": "Returns a formatted TXT file with quiz questions",
+                                        "value": "File content will be streamed as attachment"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/quiz/download/pdf": {
+            "post": {
+                "tags": [
+                    "quiz"
+                ],
+                "summary": "Download Quiz Pdf",
+                "description": "Download quiz questions as PDF file",
+                "operationId": "download_quiz_pdf_quiz_download_pdf_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/DownloadRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "PDF file generated and downloaded successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            },
+                            "application/pdf": {
+                                "examples": {
+                                    "pdf_download": {
+                                        "summary": "PDF File Download",
+                                        "description": "Returns a professionally formatted PDF with quiz questions",
+                                        "value": "Binary PDF content will be streamed as attachment"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/quiz/download/answer-key": {
+            "post": {
+                "tags": [
+                    "quiz"
+                ],
+                "summary": "Download Answer Key",
+                "description": "Download answer key as TXT file",
+                "operationId": "download_answer_key_quiz_download_answer_key_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AnswerKeyRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Answer key TXT file generated and downloaded successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            },
+                            "text/plain": {
+                                "examples": {
+                                    "answer_key_download": {
+                                        "summary": "Answer Key TXT Download",
+                                        "description": "Returns a TXT file with answer key and explanations",
+                                        "value": "Answer key content will be streamed as attachment"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/forms/create": {
+            "post": {
+                "tags": [
+                    "google-forms"
+                ],
+                "summary": "Create Google Form",
+                "description": "Create a Google Form with quiz questions",
+                "operationId": "create_google_form_forms_create_post",
+                "parameters": [
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/GoogleFormRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Google Form created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "examples": {
+                                    "form_creation_success": {
+                                        "summary": "Successful Form Creation",
+                                        "description": "Example response when Google Form is created successfully",
+                                        "value": {
+                                            "error": false,
+                                            "data": {
+                                                "form_id": "1FAIpQLSd4vJ5RQ7...",
+                                                "form_url": "https://forms.gle/ABC123",
+                                                "edit_url": "https://docs.google.com/forms/d/1FAIpQLSd4vJ5RQ7.../edit",
+                                                "title": "AI Generated Quiz - Kane Williamson",
+                                                "created_at": "2025-08-20T15:30:45.123456"
+                                            },
+                                            "message": "Google Form created successfully"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/forms/create-from-quiz": {
+            "post": {
+                "tags": [
+                    "google-forms"
+                ],
+                "summary": "Create Form From Quiz Response",
+                "description": "Create a Google Form directly from a list of questions",
+                "operationId": "create_form_from_quiz_response_forms_create_from_quiz_post",
+                "parameters": [
+                    {
+                        "name": "form_title",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "AI Generated Quiz",
+                            "title": "Form Title"
+                        }
+                    },
+                    {
+                        "name": "form_description",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Form Description"
+                        }
+                    },
+                    {
+                        "name": "is_quiz",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean",
+                            "default": true,
+                            "title": "Is Quiz"
+                        }
+                    },
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/Question"
+                                },
+                                "title": "Questions"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Google Form created successfully from quiz questions",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "examples": {
+                                    "quiz_form_creation_success": {
+                                        "summary": "Form Created from Quiz Questions",
+                                        "description": "Example response when creating Google Form from generated quiz",
+                                        "value": {
+                                            "error": false,
+                                            "data": {
+                                                "form_id": "1FAIpQLSe8xK2vN9...",
+                                                "form_url": "https://forms.gle/DEF456",
+                                                "edit_url": "https://docs.google.com/forms/d/1FAIpQLSe8xK2vN9.../edit",
+                                                "title": "AI Generated Quiz",
+                                                "created_at": "2025-08-20T15:35:22.987654"
+                                            },
+                                            "message": "Google Form created successfully"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/forms/{form_id}/responses": {
+            "get": {
+                "tags": [
+                    "google-forms"
+                ],
+                "summary": "Get Form Responses",
+                "description": "Get responses from a Google Form",
+                "operationId": "get_form_responses_forms__form_id__responses_get",
+                "parameters": [
+                    {
+                        "name": "form_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Form Id"
+                        }
+                    },
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Form responses retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "examples": {
+                                    "form_responses_success": {
+                                        "summary": "Form Responses Retrieved",
+                                        "description": "Example response when getting form responses",
+                                        "value": {
+                                            "error": false,
+                                            "data": {
+                                                "form_id": "1FAIpQLSd4vJ5RQ7...",
+                                                "total_responses": 3,
+                                                "responses": [
+                                                    {
+                                                        "response_id": "ACYDBNhX8Q...",
+                                                        "timestamp": "2025-08-20T16:00:12.345Z",
+                                                        "respondent_email": "student1@example.com",
+                                                        "answers": [
+                                                            {
+                                                                "question_id": "12345678",
+                                                                "question_text": "In what year did Kane Williamson make his first-class debut?",
+                                                                "answer": "2007",
+                                                                "is_correct": true,
+                                                                "score": 1
+                                                            },
+                                                            {
+                                                                "question_id": "87654321",
+                                                                "question_text": "Kane Williamson's international cricket debut was in 2007.",
+                                                                "answer": "False",
+                                                                "is_correct": true,
+                                                                "score": 1
+                                                            }
+                                                        ],
+                                                        "total_score": 2,
+                                                        "max_score": 2
+                                                    }
+                                                ],
+                                                "retrieved_at": "2025-08-20T16:15:30.123456"
+                                            },
+                                            "message": "Form responses retrieved successfully"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/forms/{form_id}": {
+            "delete": {
+                "tags": [
+                    "google-forms"
+                ],
+                "summary": "Delete Form",
+                "description": "Delete a Google Form (move to trash)",
+                "operationId": "delete_form_forms__form_id__delete",
+                "parameters": [
+                    {
+                        "name": "form_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Form Id"
+                        }
+                    },
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Form deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "examples": {
+                                    "form_deletion_success": {
+                                        "summary": "Form Deleted Successfully",
+                                        "description": "Example response when form is moved to trash",
+                                        "value": {
+                                            "error": false,
+                                            "data": {
+                                                "deleted": true,
+                                                "form_id": "1FAIpQLSd4vJ5RQ7..."
+                                            },
+                                            "message": "Form moved to trash successfully"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/forms/": {
+            "get": {
+                "tags": [
+                    "google-forms"
+                ],
+                "summary": "Get Forms Info",
+                "description": "Get information about Google Forms integration",
+                "operationId": "get_forms_info_forms__get",
+                "responses": {
+                    "200": {
+                        "description": "Google Forms integration information",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "examples": {
+                                    "forms_info": {
+                                        "summary": "Google Forms Integration Info",
+                                        "description": "Information about Google Forms API integration",
+                                        "value": {
+                                            "error": false,
+                                            "data": {
+                                                "message": "Google Forms API integration",
+                                                "features": [
+                                                    "Create forms with AI-generated questions",
+                                                    "Support for multiple question types",
+                                                    "Quiz mode with automatic grading",
+                                                    "Secure OAuth 2.0 authentication"
+                                                ],
+                                                "supported_question_types": [
+                                                    "multiple_choice",
+                                                    "true_false",
+                                                    "open_ended"
+                                                ],
+                                                "max_questions_per_form": 40
+                                            },
+                                            "message": "Google Forms integration information retrieved successfully"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/": {
+            "get": {
+                "summary": "Root",
+                "description": "Root endpoint with API information",
+                "operationId": "root__get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/health": {
+            "get": {
+                "summary": "Health Check",
+                "description": "Health check endpoint",
+                "operationId": "health_check_health_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "AnswerKeyRequest": {
+                "properties": {
+                    "questions": {
+                        "items": {
+                            "additionalProperties": true,
+                            "type": "object"
+                        },
+                        "type": "array",
+                        "title": "Questions",
+                        "description": "List of question objects for answer key"
+                    },
+                    "topic": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Topic",
+                        "description": "Topic for the quiz"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "questions"
+                ],
+                "title": "AnswerKeyRequest"
+            },
+            "Body_generate_quiz_from_file_quiz_generate_from_file_post": {
+                "properties": {
+                    "file": {
+                        "type": "string",
+                        "format": "binary",
+                        "title": "File"
+                    },
+                    "num_questions": {
+                        "type": "integer",
+                        "maximum": 40.0,
+                        "minimum": 1.0,
+                        "title": "Num Questions",
+                        "default": 5
+                    },
+                    "question_types": {
+                        "type": "string",
+                        "title": "Question Types",
+                        "description": "Comma-separated question types: multiple_choice,true_false,open_ended",
+                        "default": "multiple_choice"
+                    },
+                    "difficulty_levels": {
+                        "type": "string",
+                        "title": "Difficulty Levels",
+                        "description": "Comma-separated difficulty levels: basic,intermediate,advanced",
+                        "default": "intermediate"
+                    },
+                    "topic": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Topic"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "file"
+                ],
+                "title": "Body_generate_quiz_from_file_quiz_generate_from_file_post"
+            },
+            "DifficultyLevel": {
+                "type": "string",
+                "enum": [
+                    "basic",
+                    "intermediate",
+                    "advanced"
+                ],
+                "title": "DifficultyLevel"
+            },
+            "DownloadRequest": {
+                "properties": {
+                    "questions": {
+                        "items": {
+                            "additionalProperties": true,
+                            "type": "object"
+                        },
+                        "type": "array",
+                        "title": "Questions",
+                        "description": "List of question objects to download"
+                    },
+                    "include_answers": {
+                        "type": "boolean",
+                        "title": "Include Answers",
+                        "description": "Include answers in the download",
+                        "default": true
+                    },
+                    "topic": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Topic",
+                        "description": "Topic for the quiz"
+                    },
+                    "difficulty_levels": {
+                        "anyOf": [
+                            {
+                                "items": {
+                                    "type": "string"
+                                },
+                                "type": "array"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Difficulty Levels",
+                        "description": "Difficulty levels for metadata"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "questions"
+                ],
+                "title": "DownloadRequest"
+            },
+            "GoogleFormRequest": {
+                "properties": {
+                    "questions": {
+                        "items": {
+                            "$ref": "#/components/schemas/Question"
+                        },
+                        "type": "array",
+                        "title": "Questions"
+                    },
+                    "form_title": {
+                        "type": "string",
+                        "title": "Form Title",
+                        "description": "Title for the Google Form",
+                        "default": "AI Generated Quiz"
+                    },
+                    "form_description": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Form Description",
+                        "description": "Description for the Google Form"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "questions"
+                ],
+                "title": "GoogleFormRequest"
+            },
+            "HTTPValidationError": {
+                "properties": {
+                    "detail": {
+                        "items": {
+                            "$ref": "#/components/schemas/ValidationError"
+                        },
+                        "type": "array",
+                        "title": "Detail"
+                    }
+                },
+                "type": "object",
+                "title": "HTTPValidationError"
+            },
+            "MultipleChoiceOption": {
+                "properties": {
+                    "text": {
+                        "type": "string",
+                        "title": "Text"
+                    },
+                    "is_correct": {
+                        "type": "boolean",
+                        "title": "Is Correct"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "text",
+                    "is_correct"
+                ],
+                "title": "MultipleChoiceOption"
+            },
+            "Question": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "title": "Id"
+                    },
+                    "question_text": {
+                        "type": "string",
+                        "title": "Question Text"
+                    },
+                    "question_type": {
+                        "$ref": "#/components/schemas/QuestionType"
+                    },
+                    "options": {
+                        "anyOf": [
+                            {
+                                "items": {
+                                    "$ref": "#/components/schemas/MultipleChoiceOption"
+                                },
+                                "type": "array"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Options"
+                    },
+                    "correct_answer": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Correct Answer"
+                    },
+                    "explanation": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Explanation"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "id",
+                    "question_text",
+                    "question_type"
+                ],
+                "title": "Question"
+            },
+            "QuestionType": {
+                "type": "string",
+                "enum": [
+                    "multiple_choice",
+                    "true_false",
+                    "open_ended"
+                ],
+                "title": "QuestionType"
+            },
+            "QuizGenerationRequest": {
+                "properties": {
+                    "text": {
+                        "type": "string",
+                        "minLength": 50,
+                        "title": "Text",
+                        "description": "Text content to generate questions from"
+                    },
+                    "num_questions": {
+                        "type": "integer",
+                        "maximum": 40.0,
+                        "minimum": 1.0,
+                        "title": "Num Questions",
+                        "description": "Number of questions to generate",
+                        "default": 5
+                    },
+                    "question_types": {
+                        "items": {
+                            "$ref": "#/components/schemas/QuestionType"
+                        },
+                        "type": "array",
+                        "title": "Question Types",
+                        "description": "Types of questions to generate",
+                        "default": [
+                            "multiple_choice"
+                        ]
+                    },
+                    "difficulty_levels": {
+                        "items": {
+                            "$ref": "#/components/schemas/DifficultyLevel"
+                        },
+                        "type": "array",
+                        "title": "Difficulty Levels",
+                        "description": "Difficulty levels of questions",
+                        "default": [
+                            "intermediate"
+                        ]
+                    },
+                    "topic": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Topic",
+                        "description": "Specific topic focus for the quiz"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "text"
+                ],
+                "title": "QuizGenerationRequest"
+            },
+            "ValidationError": {
+                "properties": {
+                    "loc": {
+                        "items": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "integer"
+                                }
+                            ]
+                        },
+                        "type": "array",
+                        "title": "Location"
+                    },
+                    "msg": {
+                        "type": "string",
+                        "title": "Message"
+                    },
+                    "type": {
+                        "type": "string",
+                        "title": "Error Type"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "loc",
+                    "msg",
+                    "type"
+                ],
+                "title": "ValidationError"
+            }
+        }
+    }
+}

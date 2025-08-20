@@ -43,27 +43,42 @@ export const quizService = {
   },
 
   // Download as TXT
-  downloadTxt: async (questions: Question[]): Promise<Blob> => {
+  downloadTxt: async (questions: Question[], includeAnswers: boolean, topic: string, difficultyLevels: string[]): Promise<Blob> => {
     const response = await apiClient.post('/quiz/download/txt', 
-      { questions }, 
+      { 
+        questions,
+        include_answers: includeAnswers,
+        topic,
+        difficulty_levels: difficultyLevels
+      }, 
       { responseType: 'blob' }
     )
     return response.data
   },
 
   // Download as PDF
-  downloadPdf: async (questions: Question[], includeAnswers: boolean = true): Promise<Blob> => {
+  downloadPdf: async (questions: Question[], includeAnswers: boolean, topic: string, difficultyLevels: string[]): Promise<Blob> => {
     const response = await apiClient.post('/quiz/download/pdf', 
-      { questions, include_answers: includeAnswers }, 
+      { 
+        questions,
+        include_answers: includeAnswers,
+        topic,
+        difficulty_levels: difficultyLevels
+      }, 
       { responseType: 'blob' }
     )
     return response.data
   },
 
   // Download answer key
-  downloadAnswerKey: async (questions: Question[]): Promise<Blob> => {
+  downloadAnswerKey: async (questions: Question[], includeAnswers: boolean, topic: string, difficultyLevels: string[]): Promise<Blob> => {
     const response = await apiClient.post('/quiz/download/answer-key', 
-      { questions }, 
+      { 
+        questions,
+        include_answers: includeAnswers,
+        topic,
+        difficulty_levels: difficultyLevels
+      }, 
       { responseType: 'blob' }
     )
     return response.data
