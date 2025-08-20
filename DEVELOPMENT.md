@@ -51,22 +51,31 @@ src/components/
 
 #### Services Architecture
 - `api.ts` - Base API client with interceptors
-- `quizService.ts` - Quiz generation and management
-- `authService.ts` - Authentication (to be implemented)
-- `formsService.ts` - Google Forms integration (to be implemented)
+- `quizService.ts` - Quiz generation and download management
+- `authService.ts` - Google OAuth authentication
+- `formsService.ts` - Google Forms API integration
 
 #### Type Definitions
 All TypeScript interfaces are defined in `src/types/`:
-- `quiz.ts` - Quiz, Question, and API response types
-- `auth.ts` - Authentication types (to be implemented)
-- `forms.ts` - Google Forms types (to be implemented)
+- `quiz.ts` - Quiz, Question, QuizGenerationRequest, and APIResponse types
+
+## Technology Stack
+
+- **Core Framework**: Next.js 15 with TypeScript and app router
+- **Styling**: Tailwind CSS with Radix UI components  
+- **Forms**: React Hook Form with Zod validation
+- **State Management**: TanStack Query for server state
+- **File Handling**: React Dropzone for uploads, js-file-download for exports
+- **Icons**: Lucide React
+- **Authentication**: Google OAuth with localStorage token storage
 
 ## Key Development Patterns
 
 ### API Integration
 - Use the centralized `apiClient` from `src/services/api.ts`
 - All API responses follow the `APIResponse<T>` interface
-- Authentication tokens are automatically handled by interceptors
+- Authentication tokens are automatically injected via axios interceptors
+- 401 errors automatically redirect to login page
 
 ### Form Handling
 - Use React Hook Form with Zod validation
@@ -93,17 +102,17 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8
 
 ### Expected Backend Endpoints
 ```
-POST /quiz/generate              # Generate quiz from text
-POST /quiz/generate-from-file    # Generate quiz from file upload
-GET  /quiz/test-gemini          # Test AI connection
-GET  /quiz/question-types       # Get available question types
-GET  /quiz/difficulty-levels    # Get available difficulty levels
-POST /quiz/download/pdf         # Download quiz as PDF
-POST /quiz/download/txt         # Download quiz as TXT
-POST /quiz/download/answer-key  # Download answer key
-GET  /auth/google/authorize     # Google OAuth
-GET  /auth/callback             # OAuth callback
-POST /forms/create              # Create Google Form
+POST /quiz/generate                # Generate quiz from text
+POST /quiz/generate-from-file      # Generate quiz from file upload
+GET  /quiz/test-gemini            # Test AI connection
+POST /quiz/download/pdf           # Download quiz as PDF
+POST /quiz/download/txt           # Download quiz as TXT
+POST /quiz/download/answer-key    # Download answer key
+GET  /auth/google/authorize       # Initialize Google OAuth flow
+GET  /auth/callback               # Handle OAuth callback and redirect
+POST /forms/create-from-quiz      # Create Google Form from quiz questions
+GET  /forms/{form_id}/responses   # Retrieve form responses
+DELETE /forms/{form_id}           # Delete form
 ```
 
 ### API Response Format
@@ -187,13 +196,41 @@ npm run start
 - Track Core Web Vitals
 - Set up error tracking
 
+## File Upload Constraints
+
+- **Supported formats**: PDF, DOCX, TXT
+- **Maximum file size**: 10MB
+- **Interface**: Drag-and-drop using react-dropzone
+
+## Quiz Generation Features
+
+### Question Types Supported
+- Multiple choice
+- True/false  
+- Short answer
+- Long answer
+- Fill in the blank
+
+### Export Options
+- PDF download with questions and optional answers
+- TXT file export
+- Answer key generation
+- Google Forms creation
+
+## Environment Configuration
+
+Required environment variables:
+- `NEXT_PUBLIC_API_BASE_URL` - Backend API URL (default: http://localhost:8000)
+- `NEXT_PUBLIC_GOOGLE_CLIENT_ID` - Google OAuth client ID
+
 ## Troubleshooting
 
 ### Common Issues
 1. **API Connection Errors**: Check backend server status and CORS configuration
 2. **Build Failures**: Verify all TypeScript types and imports
 3. **Styling Issues**: Check Tailwind CSS configuration and PostCSS setup
-4. **Authentication Problems**: Verify Google OAuth configuration
+4. **Authentication Problems**: Verify Google OAuth configuration and credentials
+5. **File Upload Issues**: Check file size limits and supported formats
 
 ### Debug Tools
 - Use React Developer Tools

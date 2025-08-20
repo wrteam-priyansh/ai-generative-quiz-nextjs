@@ -26,9 +26,11 @@ npm run lint
 
 ### API Integration Layer
 - **Base API Client**: `src/services/api.ts` - Centralized axios client with authentication interceptors
-- **Quiz Service**: `src/services/quizService.ts` - All quiz-related API calls
+- **Quiz Service**: `src/services/quizService.ts` - All quiz-related API calls (download PDF/TXT/answer key)
+- **Auth Service**: `src/services/authService.ts` - Google OAuth flow and credential management
+- **Forms Service**: `src/services/formsService.ts` - Google Forms API integration
 - **Backend URL**: Configured via `NEXT_PUBLIC_API_BASE_URL` (default: http://localhost:8000)
-- **Authentication**: Bearer token stored in localStorage, automatic redirect on 401 errors
+- **Authentication**: Google OAuth with credentials stored in localStorage
 
 ### Type System
 - **Core Types**: `src/types/quiz.ts` defines Question, Quiz, QuizGenerationRequest, and APIResponse interfaces
@@ -36,23 +38,34 @@ npm run lint
 - **Question Types**: 'multiple_choice' | 'true_false' | 'short_answer' | 'long_answer' | 'fill_in_blank'
 
 ### Backend Integration Points
-The frontend expects these FastAPI endpoints:
+The frontend integrates with these FastAPI endpoints:
 - `POST /quiz/generate` - Generate quiz from text
 - `POST /quiz/generate-from-file` - Generate quiz from file upload  
 - `GET /quiz/test-gemini` - Test AI connection
-- `POST /quiz/download/pdf` - Download quiz as PDF
-- `POST /quiz/download/txt` - Download as text file
-- `POST /quiz/download/answer-key` - Download answer key
-- `GET /auth/google/authorize` - Google OAuth flow
-- `POST /forms/create` - Create Google Form
+- `POST /quiz/download/pdf` - Download quiz as PDF (with questions, include_answers, topic, difficulty_levels)
+- `POST /quiz/download/txt` - Download as text file (same parameters)
+- `POST /quiz/download/answer-key` - Download answer key (same parameters)
+- `GET /auth/google/authorize` - Initialize Google OAuth flow
+- `GET /auth/callback` - Handle OAuth callback and redirect to frontend
+- `POST /forms/create-from-quiz` - Create Google Form from quiz questions
+- `GET /forms/{form_id}/responses` - Retrieve form responses
+- `DELETE /forms/{form_id}` - Delete form
 
 ### Project Structure
 ```
 src/
 ├── app/                 # Next.js app router pages
+│   ├── auth/callback/   # OAuth callback handler page
+│   └── generate/        # Main quiz generation page
 ├── components/          # Reusable UI components
+│   └── QuizDisplay.tsx  # Quiz results and export functionality
 ├── services/            # API service layer
+│   ├── api.ts           # Base axios client
+│   ├── quizService.ts   # Quiz generation and download APIs
+│   ├── authService.ts   # Google OAuth authentication
+│   └── formsService.ts  # Google Forms integration
 ├── types/               # TypeScript type definitions
+│   └── quiz.ts          # Quiz-related interfaces
 ├── contexts/            # React contexts (auth, theme, etc.)
 ├── hooks/               # Custom React hooks
 └── utils/               # Utility functions
