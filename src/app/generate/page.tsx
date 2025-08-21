@@ -48,6 +48,135 @@ function GeneratePageContent() {
     }
   })
 
+  // Check for OAuth callback parameters and handle authentication
+  useEffect(() => {
+    const handleAuthCallback = () => {
+      // Check URL for auth parameters (from OAuth redirect)
+      // Handle both correct format (?auth=success) and malformed format (&auth=success)
+      let urlParams = new URLSearchParams(window.location.search)
+      
+      // If no search params, check if the URL is malformed (contains &auth= in pathname)
+      if (!urlParams.has('auth') && window.location.href.includes('&auth=')) {
+        // Extract everything after the first &
+        const malformedParams = window.location.href.split('&').slice(1).join('&')
+        urlParams = new URLSearchParams(malformedParams)
+      }
+      
+      const authSuccess = urlParams.get('auth')
+      const userEmail = urlParams.get('user_email')
+      const credentials = urlParams.get('credentials')
+      
+      if (authSuccess === 'success' && credentials && userEmail) {
+        console.log('Detected OAuth callback with credentials, processing...')
+        console.log('Raw credentials:', credentials)
+        
+        try {
+          // Parse and store credentials - they are base64 encoded
+          console.log('Decoding base64 credentials...')
+          const decodedCredentials = JSON.parse(atob(credentials))
+          console.log('Decoded credentials:', decodedCredentials)
+          
+          // Import authService here to avoid SSR issues
+          import('@/services/authService').then(({ authService }) => {
+            console.log('Storing credentials with authService...')
+            
+            const credentialsToStore = {
+              access_token: decodedCredentials.token,
+              refresh_token: decodedCredentials.refresh_token || '',
+              expires_in: Math.floor((new Date(decodedCredentials.expiry).getTime() - Date.now()) / 1000),
+              user_info: {
+                email: decodeURIComponent(userEmail),
+                name: decodeURIComponent(urlParams.get('user_name') || ''),
+                id: '',
+                given_name: '',
+                family_name: '',
+                picture: '',
+                locale: ''
+              },
+              credentials_json: JSON.stringify(decodedCredentials)
+            }
+            
+            console.log('Credentials to store:', credentialsToStore)
+            authService.storeCredentials(credentialsToStore)
+            console.log('Credentials stored successfully')
+            
+            // Clean up URL
+            const cleanUrl = window.location.pathname
+            window.history.replaceState({}, document.title, cleanUrl)
+            
+            // Check if we have quiz data to create a form with
+            const savedQuizData = sessionStorage.getItem('quiz_data_before_auth')
+            if (savedQuizData) {
+              try {
+                console.log('Found saved quiz data, parsing...')
+                const quizData = JSON.parse(savedQuizData)
+                sessionStorage.removeItem('quiz_data_before_auth')
+                
+                // Set the quiz response to trigger form creation
+                setQuizResponse(quizData)
+                
+                // Auto-create Google Form after a short delay
+                setTimeout(() => {
+                  console.log('Creating Google Form with quiz data...')
+                  createGoogleFormWithData(quizData)
+                }, 1000)
+              } catch (error) {
+                console.error('Error parsing saved quiz data:', error)
+                alert('Authentication successful but failed to restore quiz data.')
+              }
+            } else {
+              console.log('No saved quiz data found')
+              alert('Authentication successful! You can now create Google Forms.')
+            }
+          }).catch(error => {
+            console.error('Error importing authService:', error)
+            alert('Authentication succeeded but failed to process credentials.')
+          })
+        } catch (error) {
+          console.error('Error processing OAuth credentials:', error)
+          alert('Authentication succeeded but failed to process credentials.')
+        }
+      }
+    }
+    
+    handleAuthCallback()
+  }, [])
+
+  // Helper function to create Google Form with quiz data
+  const createGoogleFormWithData = async (quizData: any) => {
+    try {
+      const { formsService } = await import('@/services/formsService')
+      
+      setIsLoading(true)
+      const formTitle = `AI Generated Quiz - ${quizData.topic}`
+      const formDescription = `Quiz with ${quizData.total_questions} questions on ${quizData.topic}`
+      
+      const formResponse = await formsService.createFormFromQuiz(
+        quizData.questions,
+        formTitle,
+        formDescription,
+        true
+      )
+      
+      if (!formResponse.error && formResponse.data) {
+        // Open the created form in a new tab
+        const newWindow = window.open(formResponse.data.form_url, '_blank')
+        if (newWindow) {
+          alert(`Google Form created successfully! Opening in new tab.`)
+        } else {
+          alert(`Google Form created successfully! Please allow popups to open the form automatically.\n\nForm URL: ${formResponse.data.form_url}`)
+        }
+      } else {
+        throw new Error(formResponse.message || 'Failed to create Google Form')
+      }
+    } catch (error) {
+      console.error('Error creating Google Form:', error)
+      alert(`Error creating Google Form: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   // Fetch available options on component mount
   useEffect(() => {
     const fetchOptions = async () => {

@@ -11,11 +11,12 @@ interface QuizDisplayProps {
 }
 
 export default function QuizDisplay({ quizData }: QuizDisplayProps) {
-  if (!quizData) return null
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
   const [authPopup, setAuthPopup] = useState<Window | null>(null)
   const [showAuthComplete, setShowAuthComplete] = useState(false)
+
+  if (!quizData) return null
 
   // Check if user just returned from authentication
   useEffect(() => {
@@ -172,19 +173,25 @@ export default function QuizDisplay({ quizData }: QuizDisplayProps) {
       
       // Check if user is authenticated
       if (!authService.isAuthenticated()) {
-        // Store current page URL for return
-        sessionStorage.setItem('return_url_after_auth', window.location.href)
-        sessionStorage.setItem('quiz_data_before_auth', JSON.stringify(quizData))
+        console.log('User not authenticated, starting OAuth flow...')
         
-        // Get Google OAuth URL and redirect directly
+        // Store quiz data before redirecting to OAuth
+        sessionStorage.setItem('quiz_data_before_auth', JSON.stringify(quizData))
+        sessionStorage.setItem('return_url_after_auth', window.location.href)
+        
+        // Get Google OAuth URL and redirect
         const authResponse = await authService.getGoogleAuthUrl()
         if (!authResponse.error && authResponse.data) {
-          // Redirect to Google OAuth
+          console.log('Redirecting to OAuth URL:', authResponse.data.auth_url)
+          // Redirect to Google OAuth in same tab
           window.location.href = authResponse.data.auth_url
           return
+        } else {
+          throw new Error('Failed to get OAuth URL')
         }
       } else {
         // User is already authenticated, create form directly
+        console.log('User already authenticated, creating form directly...')
         await createGoogleFormDirect()
       }
     } catch (error) {
@@ -193,6 +200,7 @@ export default function QuizDisplay({ quizData }: QuizDisplayProps) {
       setIsDownloading(false)
     }
   }
+
 
   return (
     <div className="mt-8 bg-white rounded-lg shadow-md p-6">

@@ -36,8 +36,10 @@ export const authService = {
   getGoogleAuthUrl: async (state?: string): Promise<APIResponse<GoogleAuthResponse>> => {
     // Use current page as redirect URL to preserve quiz data
     const redirectState = state || `${window.location.href}&auth=success`
+    console.log('Getting OAuth URL with redirect state:', redirectState)
     const params = { state: redirectState }
     const response = await apiClient.get('/auth/google/authorize', { params })
+    console.log('OAuth URL response:', response.data)
     return response.data
   },
 

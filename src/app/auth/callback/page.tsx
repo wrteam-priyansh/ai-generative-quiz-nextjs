@@ -45,18 +45,34 @@ export default function AuthCallback() {
         setStatus('loading')
         setMessage('Processing authentication...')
 
-        // Call the backend callback endpoint directly
-        const response = await apiClient.get('/auth/callback', {
-          params: { code, state }
-        })
-
-        if (response.data.error) {
-          throw new Error(response.data.message || 'Authentication failed')
+        // Extract credentials from URL parameters (already processed by backend)
+        const credentials = searchParams.get('credentials')
+        const userEmail = searchParams.get('user_email')
+        const userName = searchParams.get('user_name')
+        
+        if (!credentials) {
+          throw new Error('No credentials received from OAuth callback')
         }
 
-        // Store the credentials
-        console.log('Storing credentials:', response.data.data)
-        authService.storeCredentials(response.data.data)
+        // Parse and store the credentials
+        const decodedCredentials = JSON.parse(decodeURIComponent(credentials))
+        console.log('Storing credentials:', decodedCredentials)
+        
+        authService.storeCredentials({
+          access_token: decodedCredentials.token,
+          refresh_token: decodedCredentials.refresh_token || '',
+          expires_in: Math.floor((new Date(decodedCredentials.expiry).getTime() - Date.now()) / 1000),
+          user_info: {
+            email: decodeURIComponent(userEmail || ''),
+            name: decodeURIComponent(userName || ''),
+            id: '',
+            given_name: '',
+            family_name: '',
+            picture: '',
+            locale: ''
+          },
+          credentials_json: JSON.stringify(decodedCredentials)
+        })
         
         setStatus('success')
         setMessage('Authentication successful! Redirecting back...')
