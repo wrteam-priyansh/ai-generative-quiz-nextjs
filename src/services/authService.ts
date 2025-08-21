@@ -102,13 +102,26 @@ export const authService = {
   // Check if user is authenticated
   isAuthenticated: (): boolean => {
     const { access_token, token_expires_at } = authService.getStoredCredentials()
-    console.log('isAuthenticated check:', { access_token: !!access_token, token_expires_at, currentTime: Date.now() })
+    console.log('isAuthenticated check:', { 
+      access_token: !!access_token, 
+      token_expires_at, 
+      currentTime: Date.now(),
+      isExpired: token_expires_at ? Date.now() > parseInt(token_expires_at) : 'no expiry'
+    })
     
-    if (!access_token) return false
+    if (!access_token) {
+      console.log('No access token found')
+      return false
+    }
     
     // If no expiry time, consider it valid (some OAuth flows don't provide expiry)
-    if (!token_expires_at) return true
+    if (!token_expires_at) {
+      console.log('No expiry time found, considering token valid')
+      return true
+    }
     
-    return Date.now() < parseInt(token_expires_at)
+    const isValid = Date.now() < parseInt(token_expires_at)
+    console.log('Token validation result:', isValid)
+    return isValid
   }
 }

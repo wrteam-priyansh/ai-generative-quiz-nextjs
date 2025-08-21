@@ -15,50 +15,24 @@ export default function QuizDisplay({ quizData }: QuizDisplayProps) {
   const [isDownloading, setIsDownloading] = useState(false)
   const [authPopup, setAuthPopup] = useState<Window | null>(null)
   const [showAuthComplete, setShowAuthComplete] = useState(false)
+  const [formCreationStatus, setFormCreationStatus] = useState<string>('')
+  const [isCreatingForm, setIsCreatingForm] = useState(false)
 
   if (!quizData) return null
 
   // Check if user just returned from authentication
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search)
-    const authSuccess = urlParams.get('auth')
-    const userEmail = urlParams.get('user_email')
-    const credentials = urlParams.get('credentials')
+    // Check if authentication was just completed and we should create a form
+    const shouldCreateForm = sessionStorage.getItem('create_form_after_auth')
     
-    if (authSuccess === 'success' && credentials && quizData) {
-      console.log('User returned from successful authentication, creating Google Form...')
+    if (shouldCreateForm === 'true' && quizData && authService.isAuthenticated()) {
+      console.log('User returned from authentication, creating Google Form automatically...')
+      sessionStorage.removeItem('create_form_after_auth')
       
-      // Store credentials from URL parameters
-      try {
-        const decodedCredentials = JSON.parse(decodeURIComponent(credentials))
-        authService.storeCredentials({
-          access_token: decodedCredentials.token,
-          refresh_token: decodedCredentials.refresh_token,
-          expires_in: Math.floor((new Date(decodedCredentials.expiry).getTime() - Date.now()) / 1000),
-          user_info: {
-            email: decodeURIComponent(userEmail || ''),
-            name: decodeURIComponent(urlParams.get('user_name') || ''),
-            id: '',
-            given_name: '',
-            family_name: '',
-            picture: '',
-            locale: ''
-          },
-          credentials_json: JSON.stringify(decodedCredentials)
-        })
-        
-        // Clean up URL parameters
-        window.history.replaceState({}, document.title, window.location.pathname)
-        
-        // Create Google Form automatically
-        setTimeout(() => {
-          createGoogleFormDirect()
-        }, 1000)
-        
-      } catch (error) {
-        console.error('Error processing authentication:', error)
-        alert('Authentication succeeded but failed to process credentials.')
-      }
+      // Wait a moment for the page to settle, then create the form
+      setTimeout(() => {
+        createGoogleFormDirect()
+      }, 500)
     }
   }, [quizData])
 
@@ -116,9 +90,27 @@ export default function QuizDisplay({ quizData }: QuizDisplayProps) {
   const createGoogleFormDirect = async () => {
     try {
       setIsDownloading(true)
+      setIsCreatingForm(true)
+      setFormCreationStatus('🔐 Verifying authentication...')
 
+      // Double-check authentication before proceeding
+      if (!authService.isAuthenticated()) {
+        throw new Error('Authentication required. Please log in with Google first.')
+      }
+
+      setFormCreationStatus('📝 Preparing quiz questions...')
+      
       const formTitle = `AI Generated Quiz - ${quizData.topic}`
       const formDescription = `Quiz with ${quizData.total_questions} questions on ${quizData.topic}`
+      
+      console.log('Creating Google Form with authenticated user...')
+      
+      setFormCreationStatus('🌐 Opening new tab...')
+      
+      // Pre-open a window to avoid popup blockers (this must be done in user gesture context)
+      const newWindow = window.open('about:blank', '_blank', 'noopener,noreferrer')
+      
+      setFormCreationStatus('🚀 Creating Google Form...')
       
       const formResponse = await formsService.createFormFromQuiz(
         quizData.questions,
@@ -128,19 +120,128 @@ export default function QuizDisplay({ quizData }: QuizDisplayProps) {
       )
 
       if (!formResponse.error && formResponse.data) {
-        // Open the created form in a new tab
-        window.open(formResponse.data.form_url, '_blank')
-        alert(`Google Form created successfully! Form URL: ${formResponse.data.form_url}`)
+        console.log('Form created successfully:', formResponse.data)
+        setFormCreationStatus('✅ Google Form created successfully!')
+        
+        const formUrl = formResponse.data.form_url
+        
+        // Use the pre-opened window if available, otherwise try opening normally
+        if (newWindow && !newWindow.closed) {
+          setFormCreationStatus('🔗 Opening form in new tab...')
+          newWindow.location.href = formUrl
+          console.log('Form opened in pre-opened tab successfully')
+          
+          // Show success notification after a brief delay
+          setTimeout(() => {
+            setFormCreationStatus('🎉 Form opened successfully!')
+            setTimeout(() => {
+              setFormCreationStatus('')
+            }, 3000)
+          }, 1000)
+        } else {
+          // Fallback: try opening normally
+          const fallbackWindow = window.open(formUrl, '_blank', 'noopener,noreferrer')
+          
+          if (fallbackWindow) {
+            console.log('Form opened in new tab successfully')
+            setFormCreationStatus('🎉 Form opened successfully!')
+            setTimeout(() => {
+              setFormCreationStatus('')
+            }, 3000)
+          } else {
+            console.warn('Popup blocked, providing manual options')
+            setFormCreationStatus('⚠️ Popup blocked - providing alternatives...')
+            
+            // If popup was blocked, provide multiple options
+            const confirmed = confirm(`Google Form created successfully!\n\nPopup was blocked. Would you like to copy the form URL to your clipboard?\n\nClick OK to copy the URL, or Cancel to see a clickable link.`)
+            
+            if (confirmed) {
+              // Try to copy to clipboard
+              try {
+                setFormCreationStatus('📋 Copying to clipboard...')
+                await navigator.clipboard.writeText(formUrl)
+                setFormCreationStatus('✅ Form URL copied to clipboard!')
+                setTimeout(() => {
+                  setFormCreationStatus('')
+                }, 5000)
+              } catch (clipboardError) {
+                console.warn('Clipboard access failed:', clipboardError)
+                setFormCreationStatus('❌ Clipboard access failed')
+                alert(`Couldn't copy to clipboard. Here's your form URL:\n\n${formUrl}`)
+                setTimeout(() => {
+                  setFormCreationStatus('')
+                }, 3000)
+              }
+            } else {
+              // Show clickable link
+              setFormCreationStatus('🔗 Clickable link created below')
+              
+              // Create a prominent clickable link
+              const linkElement = document.createElement('a')
+              linkElement.href = formUrl
+              linkElement.target = '_blank'
+              linkElement.rel = 'noopener noreferrer'
+              linkElement.textContent = '🔗 Click Here to Open Your Google Form'
+              linkElement.style.cssText = 'display: block; margin: 20px auto; padding: 15px 30px; background: linear-gradient(45deg, #4285f4, #34a853); color: white; text-decoration: none; border-radius: 8px; text-align: center; font-weight: bold; font-size: 16px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); max-width: 300px; transition: transform 0.2s;'
+              
+              linkElement.addEventListener('mouseenter', () => {
+                linkElement.style.transform = 'scale(1.05)'
+              })
+              
+              linkElement.addEventListener('mouseleave', () => {
+                linkElement.style.transform = 'scale(1)'
+              })
+              
+              // Add the link to the quiz display area
+              const container = document.querySelector('.quiz-display')
+              if (container) {
+                const buttonContainer = container.querySelector('.flex.space-x-2')
+                if (buttonContainer) {
+                  buttonContainer.parentNode?.insertBefore(linkElement, buttonContainer.nextSibling)
+                } else {
+                  container.appendChild(linkElement)
+                }
+                
+                // Remove the link after 30 seconds
+                setTimeout(() => {
+                  linkElement.remove()
+                  setFormCreationStatus('')
+                }, 30000)
+              }
+            }
+          }
+        }
       } else {
-        throw new Error('Failed to create Google Form')
+        // Close the pre-opened window if form creation failed
+        if (newWindow && !newWindow.closed) {
+          newWindow.close()
+        }
+        throw new Error(formResponse.message || 'Failed to create Google Form')
       }
     } catch (error) {
       console.error('Error creating Google Form:', error)
+      setFormCreationStatus('❌ Failed to create Google Form')
+      
       if (error instanceof Error) {
-        alert(`Error creating Google Form: ${error.message}`)
+        // Check if it's an authentication error
+        if (error.message.includes('401') || error.message.includes('authentication') || error.message.includes('token')) {
+          // Clear invalid credentials and prompt re-authentication
+          authService.clearCredentials()
+          setFormCreationStatus('🔐 Authentication expired - please try again')
+          alert('Your Google authentication has expired. Please click "Google Form" again to re-authenticate.')
+        } else {
+          setFormCreationStatus(`❌ Error: ${error.message}`)
+          alert(`Error creating Google Form: ${error.message}`)
+        }
       }
+      
+      // Clear status after 5 seconds
+      setTimeout(() => {
+        setFormCreationStatus('')
+      }, 5000)
     } finally {
       setIsDownloading(false)
+      setIsCreatingForm(false)
     }
   }
 
@@ -171,11 +272,25 @@ export default function QuizDisplay({ quizData }: QuizDisplayProps) {
     try {
       setIsDownloading(true)
       
+      // Debug: Log current authentication state
+      const credentials = authService.getStoredCredentials()
+      console.log('Current authentication state:', {
+        isAuthenticated: authService.isAuthenticated(),
+        hasAccessToken: !!credentials.access_token,
+        hasCredentialsJson: !!credentials.credentials_json,
+        tokenExpiry: credentials.token_expires_at,
+        currentTime: Date.now()
+      })
+      
       // Check if user is authenticated
       if (!authService.isAuthenticated()) {
         console.log('User not authenticated, starting OAuth flow...')
         
-        // Store quiz data before redirecting to OAuth
+        // Clear any existing invalid credentials
+        authService.clearCredentials()
+        
+        // Set flag to create form after authentication
+        sessionStorage.setItem('create_form_after_auth', 'true')
         sessionStorage.setItem('quiz_data_before_auth', JSON.stringify(quizData))
         sessionStorage.setItem('return_url_after_auth', window.location.href)
         
@@ -190,9 +305,28 @@ export default function QuizDisplay({ quizData }: QuizDisplayProps) {
           throw new Error('Failed to get OAuth URL')
         }
       } else {
-        // User is already authenticated, create form directly
-        console.log('User already authenticated, creating form directly...')
-        await createGoogleFormDirect()
+        // Even if user appears authenticated, the 401 error suggests credentials are invalid
+        // Force re-authentication for Google Forms to ensure fresh tokens
+        console.log('Forcing fresh authentication for Google Forms...')
+        
+        // Clear potentially stale credentials
+        authService.clearCredentials()
+        
+        // Set flag to create form after authentication
+        sessionStorage.setItem('create_form_after_auth', 'true')
+        sessionStorage.setItem('quiz_data_before_auth', JSON.stringify(quizData))
+        sessionStorage.setItem('return_url_after_auth', window.location.href)
+        
+        // Get Google OAuth URL and redirect
+        const authResponse = await authService.getGoogleAuthUrl()
+        if (!authResponse.error && authResponse.data) {
+          console.log('Redirecting to OAuth URL for fresh authentication:', authResponse.data.auth_url)
+          // Redirect to Google OAuth in same tab
+          window.location.href = authResponse.data.auth_url
+          return
+        } else {
+          throw new Error('Failed to get OAuth URL')
+        }
       }
     } catch (error) {
       console.error('Error in Google Form flow:', error)
@@ -203,7 +337,7 @@ export default function QuizDisplay({ quizData }: QuizDisplayProps) {
 
 
   return (
-    <div className="mt-8 bg-white rounded-lg shadow-md p-6">
+    <div className="mt-8 bg-white rounded-lg shadow-md p-6 quiz-display">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold text-gray-900">Generated Quiz</h2>
         <div className="flex space-x-2 flex-wrap">
@@ -253,14 +387,25 @@ export default function QuizDisplay({ quizData }: QuizDisplayProps) {
           </button>
           <button 
             onClick={handleCreateGoogleForm}
-            disabled={isDownloading}
+            disabled={isDownloading || isCreatingForm}
             className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-2 px-4 rounded-lg transition-colors cursor-pointer"
           >
-            Google Form
+            {isCreatingForm ? 'Creating Form...' : 'Google Form'}
           </button>
         </div>
       </div>
 
+      {/* Progress Status Display */}
+      {formCreationStatus && (
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center space-x-2">
+            {isCreatingForm && (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+            )}
+            <span className="text-blue-800 font-medium">{formCreationStatus}</span>
+          </div>
+        </div>
+      )}
 
       <div className="mb-4">
         <p><span className="font-semibold">Topic:</span> {quizData.topic}</p>
