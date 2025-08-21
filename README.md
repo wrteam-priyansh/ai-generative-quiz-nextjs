@@ -1,17 +1,50 @@
 # AI Quiz Generator Frontend
 
-A modern Next.js frontend for the AI Quiz Generator that integrates with a FastAPI backend to create intelligent quizzes from text or uploaded files.
+A production-ready Next.js frontend for the AI Quiz Generator that creates intelligent quizzes from text or uploaded files with seamless Google Forms integration.
 
-## Features
+## ✨ Features
 
-- 🤖 **AI-Powered Quiz Generation** - Generate quizzes from text input or uploaded files (PDF, DOCX, TXT)
-- 📝 **Multiple Question Types** - Support for multiple choice, true/false, short answer, long answer, and fill-in-blank questions
-- 🔗 **Google Forms Integration** - Create and manage Google Forms directly from generated quizzes
-- 📊 **Flexible Difficulty Levels** - Generate questions with easy, medium, or hard difficulty
-- 📥 **Multiple Export Formats** - Download quizzes as PDF, TXT, or answer keys
-- 🎨 **Modern UI/UX** - Built with Tailwind CSS and Radix UI components
-- 🔐 **Google OAuth Authentication** - Secure authentication for Google Forms integration
-- 📱 **Responsive Design** - Works seamlessly on desktop, tablet, and mobile devices
+### 🤖 **AI-Powered Quiz Generation**
+- Generate intelligent quizzes from text input or uploaded files (PDF, DOCX, TXT)
+- Powered by Google Gemini AI for high-quality question generation
+- Support for 1-40 questions per quiz with customizable difficulty levels
+
+### 📝 **Comprehensive Question Types**
+- Multiple choice questions with 4 options
+- True/false questions with explanations
+- Open-ended questions for detailed responses
+- Automatic answer validation and scoring
+
+### 🔗 **Advanced Google Forms Integration**
+- **One-click form creation** from generated quizzes
+- **Real-time progress tracking** with visual indicators
+- **Smart popup handling** with multiple fallback options
+- **Automatic grading** for quiz mode forms
+- **Form management** with edit and delete capabilities
+
+### 📊 **Flexible Configuration**
+- **Difficulty Levels**: Basic, Intermediate, Advanced
+- **Question Count**: 1-40 questions per quiz
+- **Topic Customization**: Specify focus areas for targeted content
+- **File Upload**: Support for PDF, DOCX, TXT files (max 10MB)
+
+### 📥 **Multiple Export Options**
+- **PDF Download**: Professionally formatted quiz documents
+- **TXT Download**: Plain text version for easy sharing
+- **Answer Key**: Separate answer sheets with explanations
+- **Google Forms**: Interactive forms with automatic grading
+
+### 🔐 **Secure Authentication**
+- **Google OAuth 2.0** integration with proper scope management
+- **Automatic token refresh** for seamless user experience
+- **Secure credential storage** with localStorage management
+- **Error recovery** with re-authentication prompts
+
+### 🎨 **Modern User Experience**
+- **Responsive design** optimized for all device sizes
+- **Real-time feedback** with progress indicators and status updates
+- **Accessible UI** built with Radix UI components
+- **Clean interface** with Tailwind CSS styling
 
 ## Tech Stack
 
@@ -53,15 +86,31 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_google_client_id
 ```
 
-## Backend Integration
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js 18+ 
+- A running FastAPI backend (available separately)
+- Google Cloud Project with Forms and Drive API enabled
+
+### Backend Integration
 
 This frontend connects to a FastAPI backend that should be running on `http://localhost:8000`. The backend provides:
 
-- Quiz generation endpoints
-- File upload and processing
-- Google OAuth authentication
-- Google Forms API integration
-- File download services (PDF, TXT, Answer Keys)
+- **AI Quiz Generation**: Google Gemini integration for intelligent question creation
+- **File Processing**: PDF, DOCX, TXT file parsing and content extraction
+- **Google OAuth**: Complete authentication flow with token management
+- **Google Forms API**: Form creation, management, and response retrieval
+- **Export Services**: PDF/TXT generation and answer key formatting
+
+### Production Deployment
+
+For production deployment:
+
+1. **Backend Requirements**: Ensure the FastAPI backend is deployed and accessible
+2. **Environment Variables**: Update `NEXT_PUBLIC_API_BASE_URL` to point to your backend
+3. **Google Cloud Setup**: Configure OAuth credentials for your domain
+4. **Build & Deploy**: Use `npm run build` and deploy to your preferred platform
 
 ## Project Structure
 
